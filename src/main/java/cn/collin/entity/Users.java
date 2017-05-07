@@ -25,7 +25,7 @@ public class Users implements Serializable{
     public Users(){
 
     }
-
+    //init chaincode
     public Users(String valA, String valB, String valC, String valD, String valE) {
         this.valA = valA;
         this.valB = valB;
@@ -34,10 +34,12 @@ public class Users implements Serializable{
         this.valE = valE;
     }
 
+    //query chaincode
     public Users(String queryUser) {
         this.queryUser = queryUser;
     }
 
+    //invoke chaincode
     public Users(String valA, String invokeA, String invokeB, String amount) {
         this.valA = valA;
         this.invokeA = invokeA;

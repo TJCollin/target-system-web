@@ -1,5 +1,6 @@
 package cn.collin;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,6 +17,8 @@ public class TargetSystemApplication {
 	public RestTemplate restTemplate() {
 		return builder.build();
 	}
+
+
 	public static void main(String[] args) {
 		SpringApplication.run(TargetSystemApplication.class, args);
 	}

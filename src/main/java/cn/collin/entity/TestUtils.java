@@ -5,16 +5,15 @@ package cn.collin.entity;
  */
 public class TestUtils {
     private int testFrq = 0;
-    private String chaincodeId = "";
+//    private String chaincodeId = "";
     private String testUrl = "";
 
     public TestUtils() {
     }
 
-    public TestUtils(int testFrq, String testUrl, String chaincodeId) {
+    public TestUtils(int testFrq, String testUrl) {
         this.testFrq = testFrq;
         this.testUrl = testUrl;
-        this.chaincodeId = chaincodeId;
     }
 
 
@@ -27,14 +26,14 @@ public class TestUtils {
         this.testUrl = testUrl;
     }
 
-    public String getChaincodeId() {
-
-        return chaincodeId;
-    }
-
-    public void setChaincodeId(String chaincodeId) {
-        this.chaincodeId = chaincodeId;
-    }
+//    public String getChaincodeId() {
+//
+//        return chaincodeId;
+//    }
+//
+//    public void setChaincodeId(String chaincodeId) {
+//        this.chaincodeId = chaincodeId;
+//    }
 
 
     public int getTestFrq() {
