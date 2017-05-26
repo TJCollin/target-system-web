@@ -28,7 +28,8 @@ public class Controller {
 //    private PostService postService = new PostService();
     private JsonData jsonData = new JsonData();
     private PayLoadData payLoadData = new PayLoadData();
-    private String postUrl = "http://202.120.167.86:7050/chaincode";
+    private String postUrl = "https://e4297151a2854808930738f32de27ed4-vp0.us.blockchain.ibm.com:5002/chaincode";
+    private String contractAD = "";
     private String CCID = "";
     private String invokeId = "";
     private String status = "";
@@ -40,17 +41,26 @@ public class Controller {
     //data send to kafka when the invoke starts and ends
     private String startData = "";
     private String endData = "";
+    private String checkData = "";
+
+    private HttpEntity<String> sendEntity;
+    private HttpEntity<String> recvEntity;
+    private HttpEntity<String> checkEntity;
+    private HttpEntity<String> entity;
+    //response to vue
+    JSONObject response = new JSONObject();
 
     //sendTS send timestamp
     //recvTS receive timestamp
-    private String sendTS, recvTS;
+    private Long sendTS, recvTS;
     //timestamp format
-    private SimpleDateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
+    private SimpleDateFormat formatter = new SimpleDateFormat("YYYY-MM-dd-HH:mm:ss:SSS");
     
     
-    private String startInvokeURL = "http://localhost:8080/startInvoke";
-    private String endInvokeURL = "http://localhost:8080/endInvoke";
+    private String invokeURL = "http://localhost:8080/invoke";
+//    private String endInvokeURL = "http://localhost:8080/endInvoke";
     private String endTestURL = "http://localhost:8080/endTest";
+    private String searchResultURL = "http://localhost:8080/searchResult";
 
 
     @Autowired
@@ -58,6 +68,18 @@ public class Controller {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    //set the chaincode
+    @RequestMapping(value = "/set", method = {RequestMethod.GET, RequestMethod.POST})
+    @ResponseBody
+    public String set(@RequestBody Users users) {
+        this.postUrl = users.getServerAD();
+        this.contractAD = users.getContractAD();
+        System.out.println("serverAD:"+this.postUrl);
+        System.out.println("contractAD:"+this.contractAD);
+        response.put("result","ok");
+        return response.toString();
+    }
 
     //init the chaincode
     @RequestMapping(value = "/init", method = {RequestMethod.GET, RequestMethod.POST})
@@ -86,10 +108,12 @@ public class Controller {
         //form the data to post
         args = arrayList.toString();
         System.out.println(args);
-        chaincodeID = " \"path\":\"github.com/hyperledger/fabric/examples/chaincode/go/zhangcong\" ";
+        chaincodeID = " \"path\":\""+contractAD+"\" ";
         payLoad = jsonData.getJsonData("deploy", chaincodeID, "init", args, "1");
-        HttpEntity<String> entity = payLoadData.getPayLoad(payLoad);
-        Object object = restTemplate.postForObject(postUrl, entity, String.class);
+        entity = payLoadData.getPayLoad(payLoad);
+//        System.out.println("initPayload:"+payLoad);
+        Object object = restTemplate.postForObject(postUrl+"/chaincode", entity, String.class);
+//        System.out.println(object.toString());
 
         //analyse the response
         jsonObject = JSONObject.fromObject(object);
@@ -120,8 +144,8 @@ public class Controller {
             System.out.println(payLoad.toString());
 
             //post data
-            HttpEntity<String> entity = payLoadData.getPayLoad(payLoad);
-            Object object = restTemplate.postForObject(postUrl, entity, String.class);
+            entity = payLoadData.getPayLoad(payLoad);
+            Object object = restTemplate.postForObject(postUrl+"/chaincode", entity, String.class);
 
             //analyse the response
             String result = JSONObject.fromObject(object).getString("result");
@@ -152,7 +176,8 @@ public class Controller {
     @RequestMapping(value = "/invoke", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public String invoke(@RequestBody Users invokeUsers) {
-        System.out.println("invokeUsers = [" + invokeUsers.getInvokeA() + "]");
+        Object resp;
+//        System.out.println("invokeUsers = [" + invokeUsers.getInvokeA() + "]");
         if (CCID.equals("fail") || CCID.equals("")) {
             System.out.println("query fail");
             return "query fail";
@@ -161,26 +186,28 @@ public class Controller {
             String args = "[" + "\"" + invokeUsers.getInvokeA() + "\"" + "," + "\"" + invokeUsers.getInvokeB() + "\"" + "," + "\"" + invokeUsers.getAmount() + "\"" + "]";
             String chaincodeID = "\"name\":\"" + CCID + "\"";
             String payLoad = jsonData.getJsonData("invoke", chaincodeID, "invoke", args, "3");
-            System.out.println(payLoad.toString());
+//            System.out.println(payLoad.toString());
 
             //form the post entity
-            HttpEntity<String> entity = payLoadData.getPayLoad(payLoad);
-            System.out.println("invokeA:" + invokeUsers.getInvokeA() + "  invokeB:" + invokeUsers.getInvokeB());
+            entity = payLoadData.getPayLoad(payLoad);
+//            System.out.println("invokeA:" + invokeUsers.getInvokeA() + "  invokeB:" + invokeUsers.getInvokeB());
 
             //record the start data
-            sendTS = formatter.format(new Date(System.currentTimeMillis()));
-            startData = jsonData.getTransData(postUrl, "none", 0, sendTS, false, sendTS);
-            HttpEntity<String> sendEntity = payLoadData.getPayLoad(startData);
-            Object kafkaResponse = restTemplate.postForObject(startInvokeURL, sendEntity, String.class);
-            System.out.println("startData:"+sendTS+"  "+kafkaResponse.toString());
+//            sendTS = formatter.format(new Date(System.currentTimeMillis()));
+            sendTS = System.currentTimeMillis();
+            startData = jsonData.getTransData(postUrl, CCID, "none", 0, sendTS, false, sendTS);
+            System.out.println("startData:" + startData);
+            sendEntity = payLoadData.getPayLoad(startData);
+            Object kafkaResponse = restTemplate.postForObject(invokeURL, sendEntity, String.class);
+//            System.out.println("startData:"+sendTS+"  "+kafkaResponse.toString());
 
             //post data and analyse the response to get the invokeId
-            Object object = restTemplate.postForObject(postUrl, entity, String.class);
-            System.out.println(object.toString());
+            Object object = restTemplate.postForObject(postUrl + "/chaincode", entity, String.class);
+//            System.out.println(object.toString());
 
             //record the receive time
-            recvTS = formatter.format(new Date(System.currentTimeMillis()));
-
+//            recvTS = formatter.format(new Date(System.currentTimeMillis()));
+            recvTS = System.currentTimeMillis();
             //analyse the response data
             String result = JSONObject.fromObject(object).getString("result");
             status = JSONObject.fromObject(result).getString("status");
@@ -195,13 +222,16 @@ public class Controller {
                  success = false;
             }
 
-            //record the end data
-            endData = jsonData.getTransData(postUrl, invokeId, 1, recvTS, success, sendTS);
-            HttpEntity<String> recvEntity = payLoadData.getPayLoad(endData);
-            kafkaResponse = restTemplate.postForObject(endInvokeURL, recvEntity, String.class);
-            System.out.println("kafkaResponse:" + kafkaResponse.toString());
 
-            //connDB.insert(postUrl, CCID, invokeId, "1995-04-23 00:00:00");
+
+            //record the end data
+            endData = jsonData.getTransData(postUrl, CCID, invokeId, 1, recvTS, success, sendTS);
+            System.out.println("endData:" + endData);
+            recvEntity = payLoadData.getPayLoad(endData);
+            restTemplate.postForObject(invokeURL, recvEntity, String.class);
+//            System.out.println("kafkaResponse:" + kafkaResponse.toString());
+
+            connDB.insert(postUrl, CCID, invokeId, sendTS, recvTS);
             return "invoke finish";
         }
     }
@@ -226,13 +256,8 @@ public class Controller {
     @RequestMapping(value = "/test", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public String test (@RequestBody TestUtils testUtils){
-        this.postUrl = testUtils.getTestUrl();
         Users users = new Users("888", "888", "888", "888", "888");
         init(users);
-        /*this.CCID = testUtils.getChaincodeId();
-        System.out.println(testUtils.getChaincodeId());*/
-        this.postUrl = testUtils.getTestUrl();
-        System.out.println(testUtils.getTestUrl());
         int testFrq = testUtils.getTestFrq();
         if(testFrq >= 1000 || testFrq == 0){
             return "test fail";
@@ -250,7 +275,7 @@ public class Controller {
                 users.setInvokeA(invokeA);
                 users.setInvokeB(invokeB);
                 users.setAmount("5");
-                System.out.println("a:"+invokeA+"  b:"+invokeB);
+//                System.out.println("a:"+invokeA+"  b:"+invokeB);
                 try {
                     invoke(users);
                     Thread.sleep(interval);
@@ -260,21 +285,39 @@ public class Controller {
             }
 
             //end the test
-            Object endTag = restTemplate.getForObject(endTestURL, String.class);
-            /*List<Map<String, Object>> list = connDB.queryInitData();
+
+
+            List<Map<String, Object>> list = connDB.queryInitData();
             for(Map<String, Object> map : list){
-                String getUrl = this.getUrl + map.get("invoke_id").toString();
+                String getUrl = this.postUrl + "/transactions/" + map.get("invoke_id").toString();
+                /*try {
+
+                } catch ()*/
                 Object object = restTemplate.getForObject(getUrl, String.class);
                 String timestamp = JSONObject.fromObject(object).getString("timestamp");
                 String seconds = JSONObject.fromObject(timestamp).getString("seconds");
-                String date = tranTimestamp.stampToDate(seconds);
-                System.out.println(date);
-                connDB.updateTime(map.get("invoke_id").toString(),date);
+                String nanos = JSONObject.fromObject(timestamp).getString("nanos");
+                String invokeStart = map.get("invoke_begin").toString();
+                seconds = seconds + nanos.substring(0,3);
+                connDB.updateTime(map.get("invoke_id").toString(),seconds);
+
+                checkData = jsonData.getTransData(postUrl, CCID, invokeId, 2, Long.parseLong(seconds), true, Long.parseLong(invokeStart));
+                checkEntity = payLoadData.getPayLoad(checkData);
+                restTemplate.postForObject(searchResultURL, checkEntity, String.class);
 
 //                System.out.println(seconds);
-            }*/
+            }
 
-            return interval+"";
+            Object endTag = restTemplate.getForObject(endTestURL, String.class);
+            if (endTag.toString().equals("ok")){
+                System.out.println("endTag:"+endTag.toString());
+            } else {
+                System.out.println("fail");
+            }
+
+            response.put("result",endTag);
+
+            return response.toString();
         }
     }
 

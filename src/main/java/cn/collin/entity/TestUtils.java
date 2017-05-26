@@ -11,9 +11,8 @@ public class TestUtils {
     public TestUtils() {
     }
 
-    public TestUtils(int testFrq, String testUrl) {
+    public TestUtils(int testFrq) {
         this.testFrq = testFrq;
-        this.testUrl = testUrl;
     }
 
 

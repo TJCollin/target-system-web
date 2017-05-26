@@ -13,12 +13,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
+import java.net.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by collin on 17-5-3.
@@ -59,7 +58,7 @@ public class PostService {
     SimpleDateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss|SSS");
 
     //post request
-    public  String sendPost(TestUtils testUtils, String CCID) {
+    /*public  String sendPost(TestUtils testUtils, String CCID) {
         this.url = testUtils.getTestUrl();
         this.testFrq = testUtils.getTestFrq();
         System.out.println("testFrq = [" + testFrq + "], CCID = [" + CCID + "]");
@@ -109,8 +108,8 @@ public class PostService {
                     //to complete
                     sendTS = formatter.format(new Date(System.currentTimeMillis()));
                     System.out.println("sendTime:"+sendTS);
-                    /*HttpEntity<String> entity = payLoadData.getPayLoad(sendTS);
-                    Object object = restTemplate.postForObject(kafkaURL, entity, String.class);*/
+                    *//*HttpEntity<String> entity = payLoadData.getPayLoad(sendTS);
+                    Object object = restTemplate.postForObject(kafkaURL, entity, String.class);*//*
 
                     //record the response
                     reader = new BufferedReader(new InputStreamReader(
@@ -169,5 +168,107 @@ public class PostService {
             return response;
         }
 
+    }*/
+    public String sendPost(String url,String Params)throws IOException{
+        OutputStreamWriter out = null;
+        BufferedReader reader = null;
+        String response="";
+        try {
+            URL httpUrl = null; //HTTP URL类 用这个类来创建连接
+            //创建URL
+            httpUrl = new URL(url);
+            //建立连接
+            HttpURLConnection conn = (HttpURLConnection) httpUrl.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("connection", "keep-alive");
+            conn.setUseCaches(false);//设置不要缓存
+            conn.setInstanceFollowRedirects(true);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.connect();
+            //POST请求
+            out = new OutputStreamWriter(
+                    conn.getOutputStream());
+            out.write(Params);
+            out.flush();
+            //读取响应
+            reader = new BufferedReader(new InputStreamReader(
+                    conn.getInputStream()));
+            String lines;
+            while ((lines = reader.readLine()) != null) {
+                lines = new String(lines.getBytes(), "utf-8");
+                response+=lines;
+            }
+            reader.close();
+            // 断开连接
+            conn.disconnect();
+
+        } catch (Exception e) {
+            System.out.println("发送 POST 请求出现异常！"+e);
+            e.printStackTrace();
+        }
+        //使用finally块来关闭输出流、输入流
+        finally{
+            try{
+                if(out!=null){
+                    out.close();
+                }
+                if(reader!=null){
+                    reader.close();
+                }
+            }
+            catch(IOException ex){
+                ex.printStackTrace();
+            }
+        }
+
+        return response;
+
+    }
+
+    public String sendGet(String url) {
+        String result = "";
+        BufferedReader in = null;
+        try {
+            String urlNameString = url;
+            URL realUrl = new URL(urlNameString);
+            // 打开和URL之间的连接
+            URLConnection connection = realUrl.openConnection();
+            // 设置通用的请求属性
+            connection.setRequestProperty("accept", "*/*");
+            connection.setRequestProperty("connection", "Keep-Alive");
+            connection.setRequestProperty("user-agent",
+                    "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1;SV1)");
+            // 建立实际的连接
+            connection.connect();
+            // 获取所有响应头字段
+            Map<String, List<String>> map = connection.getHeaderFields();
+            // 遍历所有的响应头字段
+            /*for (String key : map.keySet()) {
+                System.out.println(key + "--->" + map.get(key));
+            }*/
+            // 定义 BufferedReader输入流来读取URL的响应
+            in = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                result += line;
+            }
+        } catch (Exception e) {
+            System.out.println("发送GET请求出现异常！" + e);
+            e.printStackTrace();
+        }
+        // 使用finally块来关闭输入流
+        finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+        }
+        return result;
     }
 }

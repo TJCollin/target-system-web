@@ -22,6 +22,17 @@ public class Users implements Serializable{
     private String invokeB;
     private String amount;
 
+
+    private String serverAD;
+    private String contractAD;
+
+    public Users(String serverAD, String contractAD) {
+        this.serverAD = serverAD;
+        this.contractAD = contractAD;
+    }
+
+
+
     public Users(){
 
     }
@@ -33,6 +44,8 @@ public class Users implements Serializable{
         this.valD = valD;
         this.valE = valE;
     }
+
+
 
     //query chaincode
     public Users(String queryUser) {
@@ -49,6 +62,21 @@ public class Users implements Serializable{
 
 
     /******************************getters and setters**************************************/
+    public String getServerAD() {
+        return serverAD;
+    }
+
+    public void setServerAD(String serverAD) {
+        this.serverAD = serverAD;
+    }
+
+    public String getContractAD() {
+        return contractAD;
+    }
+
+    public void setContractAD(String contractAD) {
+        this.contractAD = contractAD;
+    }
     public String getInvokeA() {
         return invokeA;
     }

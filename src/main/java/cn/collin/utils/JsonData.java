@@ -18,21 +18,22 @@ public class JsonData {
                     "\"function\":\"" + function + "\"," +
                         "\"args\":" + args +
                 "},"+
-                "\"secureContext\": \"jim\""+
+                "\"secureContext\": \"admin\""+
             "},"+
             "\"id\":"+ id +
         "}";
         return jsonString;
     }
 
-    public String getTransData (String serverId, String invokeId, int dataType, String timestamp, boolean result, String id) {
+    public String getTransData (String serverId, String chaincodeId, String invokeId, int dataType, Long timestamp, boolean result, Long id) {
         jsonObject.put("serverId", serverId);
+        jsonObject.put("chaincodeId", chaincodeId);
         jsonObject.put("invokeId", invokeId);
         jsonObject.put("dataType", dataType);
         jsonObject.put("timestamp", timestamp);
         jsonObject.put("result", result);
-        jsonObject.put("id", id);
-        System.out.println(jsonObject.toString());
+        jsonObject.put("id", id+"s01");
+//        System.out.println(jsonObject.toString());
         return jsonObject.toString();
     }
 }
