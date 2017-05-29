@@ -29,7 +29,7 @@ public class ConnDB {
     }
 
     public void updateTime(String invokeId, String invokeTime){
-        String sql = "update tran_data set invoke_end = \'" + invokeTime + "\', status = \'1\' where invoke_id = \'" +  invokeId +"\'";
+        String sql = "update tran_data set check_time = \'" + invokeTime + "\', status = \'1\' where invoke_id = \'" +  invokeId +"\'";
 //        System.out.println(sql);
 //        System.out.println(sql);
         jdbcTemplate.execute(sql);

@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Collin on 2017/4/14.
@@ -34,6 +31,7 @@ public class Controller {
     private String invokeId = "";
     private String status = "";
     private JSONObject jsonObject = new JSONObject();
+    static int i;
 
     //
     boolean success = false;
@@ -47,6 +45,7 @@ public class Controller {
     private HttpEntity<String> recvEntity;
     private HttpEntity<String> checkEntity;
     private HttpEntity<String> entity;
+    private Timer timer;
     //response to vue
     JSONObject response = new JSONObject();
 
@@ -61,6 +60,10 @@ public class Controller {
 //    private String endInvokeURL = "http://localhost:8080/endInvoke";
     private String endTestURL = "http://localhost:8080/endTest";
     private String searchResultURL = "http://localhost:8080/searchResult";
+    int testFrq;
+    Users users = new Users();
+    int fstLetter = (int)'a';
+    boolean finish = false;
 
 
     @Autowired
@@ -87,6 +90,7 @@ public class Controller {
     public String init(@RequestBody Users users) {
         String valA, valB, valC, valD, valE, args, chaincodeID, payLoad;
 
+
         //get the value to init
         ArrayList<String> arrayList = new ArrayList<>();
         valA = users.getValA();
@@ -111,7 +115,8 @@ public class Controller {
         chaincodeID = " \"path\":\""+contractAD+"\" ";
         payLoad = jsonData.getJsonData("deploy", chaincodeID, "init", args, "1");
         entity = payLoadData.getPayLoad(payLoad);
-//        System.out.println("initPayload:"+payLoad);
+
+        System.out.println("initPayload:"+payLoad);
         Object object = restTemplate.postForObject(postUrl+"/chaincode", entity, String.class);
 //        System.out.println(object.toString());
 
@@ -176,6 +181,7 @@ public class Controller {
     @RequestMapping(value = "/invoke", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public String invoke(@RequestBody Users invokeUsers) {
+        finish = false;
         Object resp;
 //        System.out.println("invokeUsers = [" + invokeUsers.getInvokeA() + "]");
         if (CCID.equals("fail") || CCID.equals("")) {
@@ -196,7 +202,7 @@ public class Controller {
 //            sendTS = formatter.format(new Date(System.currentTimeMillis()));
             sendTS = System.currentTimeMillis();
             startData = jsonData.getTransData(postUrl, CCID, "none", 0, sendTS, false, sendTS);
-            System.out.println("startData:" + startData);
+//            System.out.println("startData:" + startData);
             sendEntity = payLoadData.getPayLoad(startData);
             Object kafkaResponse = restTemplate.postForObject(invokeURL, sendEntity, String.class);
 //            System.out.println("startData:"+sendTS+"  "+kafkaResponse.toString());
@@ -226,15 +232,18 @@ public class Controller {
 
             //record the end data
             endData = jsonData.getTransData(postUrl, CCID, invokeId, 1, recvTS, success, sendTS);
-            System.out.println("endData:" + endData);
+//            System.out.println("endData:" + endData);
             recvEntity = payLoadData.getPayLoad(endData);
             restTemplate.postForObject(invokeURL, recvEntity, String.class);
 //            System.out.println("kafkaResponse:" + kafkaResponse.toString());
 
             connDB.insert(postUrl, CCID, invokeId, sendTS, recvTS);
+            finish = true;
             return "invoke finish";
         }
     }
+
+
 
     /*@RequestMapping(value = "/test", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
@@ -256,15 +265,20 @@ public class Controller {
     @RequestMapping(value = "/test", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public String test (@RequestBody TestUtils testUtils){
+        i = 0;
         Users users = new Users("888", "888", "888", "888", "888");
         init(users);
-        int testFrq = testUtils.getTestFrq();
-        if(testFrq >= 1000 || testFrq == 0){
-            return "test fail";
-        }else {
-            int interval = 1000/testFrq;
+        testFrq = testUtils.getTestFrq();
+        String type = testUtils.getType();
+        long interval = testUtils.getInterval();
+//        timer = new Timer();
+//        timer.schedule(new MyTask(), 200, interval*1000);
+
+
+//            int interval = 1000/testFrq;
             int fstLetter = (int)'a';
-            for(int i=0; i<testFrq; i++){
+            for(int i=0; i<testFrq; ++i){
+//                System.out.println("i:"+i);
                 String invokeA = (char)(fstLetter + i%5) + "";
                 String invokeB = "";
                 if(invokeA .equals("e")){
@@ -275,14 +289,18 @@ public class Controller {
                 users.setInvokeA(invokeA);
                 users.setInvokeB(invokeB);
                 users.setAmount("5");
-//                System.out.println("a:"+invokeA+"  b:"+invokeB);
-                try {
-                    invoke(users);
-                    Thread.sleep(interval);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                invoke(users);
+                while (finish && i<testFrq){
+                    try {
+                        Thread.sleep(interval*1000);
+                        break;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
+//                System.out.println("a:"+invokeA+"  b:"+invokeB);
             }
+
 
             //end the test
 
@@ -318,7 +336,30 @@ public class Controller {
             response.put("result",endTag);
 
             return response.toString();
-        }
+
     }
 
+   /* private class MyTask extends TimerTask {
+        @Override
+        public void run() {
+
+            if (i< testFrq){
+                i++;
+                String invokeA = (char)(fstLetter + i%5) + "";
+                String invokeB = "";
+                if(invokeA .equals("e")){
+                    invokeB = "a";
+                }else {
+                    invokeB = (char)(fstLetter + 1 + i%5) + "";
+                }
+                users.setInvokeA(invokeA);
+                users.setInvokeB(invokeB);
+                users.setAmount("5");
+                invoke(users);
+            } else {
+                timer.cancel();
+                System.gc();
+            }
+        }
+    }*/
 }
